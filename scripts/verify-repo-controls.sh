@@ -61,6 +61,19 @@ expect_disabled() {
   expect_value "$label" "$value" "false"
 }
 
+expect_protection_value() {
+  local label="$1"
+  local jq_expr="$2"
+  local expected="$3"
+  local value
+
+  if ! value="$(gh api "$protection" --jq "$jq_expr" 2>/dev/null)"; then
+    fail "$label unavailable"
+    return
+  fi
+  expect_value "$label" "$value" "$expected"
+}
+
 require_gh
 
 default_branch="$(gh api "repos/$REPO" --jq '.default_branch')"
@@ -79,11 +92,11 @@ expect_value "Dependabot security updates" "$dependabot_updates" "disabled"
 
 protection="repos/$REPO/branches/$BRANCH/protection"
 expect_enabled "admin enforcement" "$protection/enforce_admins"
-expect_enabled "required linear history" "$protection/required_linear_history"
+expect_protection_value "required linear history" ".required_linear_history.enabled" "true"
 expect_enabled "required signed commits" "$protection/required_signatures"
-expect_enabled "required conversation resolution" "$protection/required_conversation_resolution"
-expect_disabled "force pushes" "$protection/allow_force_pushes"
-expect_disabled "branch deletions" "$protection/allow_deletions"
+expect_protection_value "required conversation resolution" ".required_conversation_resolution.enabled" "true"
+expect_protection_value "force pushes" ".allow_force_pushes.enabled" "false"
+expect_protection_value "branch deletions" ".allow_deletions.enabled" "false"
 
 required_reviews="repos/$REPO/branches/$BRANCH/protection/required_pull_request_reviews"
 require_code_owner_reviews="$(gh api "$required_reviews" --jq '.require_code_owner_reviews')"
