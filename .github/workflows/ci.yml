@@ -280,7 +280,7 @@ jobs:
       - name: Install audit tools
         run: |
           cargo install --locked cargo-audit cargo-deny
-          go install github.com/gitleaks/gitleaks/v8@latest
+          go install github.com/zricethezav/gitleaks/v8@latest
           python -m pip install semgrep
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
