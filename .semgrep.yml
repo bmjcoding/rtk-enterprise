@@ -1,0 +1,100 @@
+rules:
+  - id: raw-socket-usage
+    pattern-either:
+      - pattern: TcpStream::$METHOD(...)
+      - pattern: UdpSocket::$METHOD(...)
+      - pattern: TcpListener::$METHOD(...)
+      - pattern: std::net::$TYPE
+      - pattern: use std::net::$TYPE;
+    message: >
+      Direct socket/network usage is forbidden in the enterprise build.
+      RTK must not open network connections on its own.
+    languages: [rust]
+    severity: ERROR
+
+  - id: rust-http-client-usage
+    pattern-either:
+      - pattern: reqwest::$METHOD(...)
+      - pattern: ureq::$METHOD(...)
+      - pattern: hyper::$METHOD(...)
+      - pattern: isahc::$METHOD(...)
+      - pattern: surf::$METHOD(...)
+    message: >
+      HTTP client usage is forbidden in the enterprise build.
+    languages: [rust]
+    severity: ERROR
+
+  - id: rust-sqlite-usage
+    pattern-either:
+      - pattern: rusqlite::$METHOD(...)
+      - pattern: Connection::open(...)
+      - pattern: libsqlite3_sys::$METHOD(...)
+    message: >
+      SQLite/local usage database code is forbidden in the enterprise build.
+    languages: [rust]
+    severity: ERROR
+
+  - id: forbidden-egress-or-database-crate
+    pattern-regex: '\b(reqwest|ureq|hyper|h2|http-body|isahc|surf|native-tls|rustls|openssl|webpki-roots|tokio-rustls|hyper-rustls|hyper-tls|rusqlite|libsqlite3-sys)\b'
+    paths:
+      include:
+        - /Cargo.toml
+        - /Cargo.lock
+    message: >
+      Forbidden network egress or local usage database crate reference.
+    languages: [generic]
+    severity: ERROR
+
+  - id: forbidden-tracking-vendor-reference
+    pattern-regex: '(?i)\b(posthog|sentry|amplitude|mixpanel|segment\.io|datadog|honeycomb|opentelemetry|newrelic|statsd|prometheus|logrocket|fullstory|hotjar|plausible|matomo|rudderstack|snowplow)\b'
+    paths:
+      include:
+        - /src/**/*.rs
+        - /Cargo.toml
+        - /Cargo.lock
+        - /.github/**/*
+      exclude:
+        - /scripts/enterprise-audit.sh
+        - /.semgrep.yml
+        - /deny.toml
+    message: >
+      Tracking, analytics, telemetry, or observability vendor reference is
+      forbidden in runtime code, dependencies, scripts, and workflows.
+    languages: [generic]
+    severity: ERROR
+
+  - id: forbidden-telemetry-env-or-command
+    pattern-regex: '(RTK_TELEMETRY|TELEMETRY_URL|tracking\.db|history\.db|usage\.db|analytics\.db|rtk (gain|discover|learn|session|telemetry|hook-audit|cc-economics)\b)'
+    paths:
+      include:
+        - /src/**/*.rs
+        - /scripts/**/*
+        - /hooks/**/*
+        - /docs/**/*
+        - /.github/**/*
+        - /README*.md
+        - /Cargo.toml
+        - /Cargo.lock
+      exclude:
+        - /scripts/enterprise-audit.sh
+        - /docs/enterprise/**/*
+        - /.semgrep.yml
+        - /deny.toml
+    message: >
+      Removed telemetry, local history, or analytics command surface detected.
+    languages: [generic]
+    severity: ERROR
+
+  - id: workflow-external-exfiltration
+    pattern-regex: '(ANTHROPIC|DISCORD|WEBHOOK|api\.anthropic\.com|RTK_TELEMETRY|TELEMETRY_URL)'
+    paths:
+      include:
+        - /.github/**/*.yml
+        - /.github/**/*.yaml
+        - /scripts/**/*
+      exclude:
+        - /scripts/enterprise-audit.sh
+    message: >
+      Workflow-level external AI, webhook, or telemetry egress is forbidden.
+    languages: [generic]
+    severity: ERROR

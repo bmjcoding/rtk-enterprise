@@ -1,0 +1,51 @@
+[graph]
+all-features = false
+
+[advisories]
+yanked = "deny"
+ignore = []
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+deny = [
+    { crate = "amplitude", reason = "analytics/reporting client not permitted in enterprise build" },
+    { crate = "datadog", reason = "observability export not permitted in enterprise build" },
+    { crate = "h2", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "http-client", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "hyper", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "hyper-rustls", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "hyper-tls", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "isahc", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "libsqlite3-sys", reason = "local usage database not permitted in enterprise build" },
+    { crate = "mixpanel", reason = "analytics/reporting client not permitted in enterprise build" },
+    { crate = "native-tls", reason = "network TLS stack not permitted in enterprise build" },
+    { crate = "opentelemetry", reason = "telemetry export not permitted in enterprise build" },
+    { crate = "openssl", reason = "network TLS stack not permitted in enterprise build" },
+    { crate = "posthog", reason = "analytics/reporting client not permitted in enterprise build" },
+    { crate = "reqwest", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "rusqlite", reason = "local usage database not permitted in enterprise build" },
+    { crate = "rustls", reason = "network TLS stack not permitted in enterprise build" },
+    { crate = "sentry", reason = "telemetry export not permitted in enterprise build" },
+    { crate = "surf", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "tokio-rustls", reason = "network TLS stack not permitted in enterprise build" },
+    { crate = "ureq", reason = "HTTP client stack not permitted in enterprise build" },
+    { crate = "webpki-roots", reason = "network TLS stack not permitted in enterprise build" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
