@@ -12,7 +12,7 @@ The source tree must not contain:
 - Tracking, analytics, telemetry, or reporting vendor integrations
 - Local usage-history databases such as `tracking.db`, `history.db`, `usage.db`, or `analytics.db`
 - Removed command surfaces such as `rtk telemetry`, `rtk gain`, `rtk discover`, `rtk learn`, `rtk session`, `rtk hook-audit`, or `rtk cc-economics`
-- CI/CD workflow calls to external AI, webhook, reporting, or telemetry endpoints
+- Public GitHub Actions workflow calls to external AI, webhook, reporting, or telemetry endpoints
 - Remote badge, image, or documentation beacons in user-facing docs
 - First-run persistence from read-only commands such as `rtk config`
 
@@ -20,7 +20,7 @@ This position is only valid for source revisions that pass the enterprise verifi
 
 ## Boundary Of The Claim
 
-The no-telemetry claim applies to RTK-owned code paths and RTK-controlled release workflows.
+The no-telemetry claim applies to RTK-owned code paths and repository-controlled automation. This public source tree intentionally has no `.github/` workflow tree.
 
 It does not claim that all child commands are offline. RTK executes commands requested by the user. The following examples may legitimately access the network because the user invoked those tools:
 

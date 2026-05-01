@@ -31,7 +31,7 @@
 
 1. **Single Responsibility**: Each module handles one command type
 2. **Minimal Overhead**: ~5-15ms proxy overhead per command
-3. **Exit Code Preservation**: CI/CD reliability through proper exit code propagation
+3. **Exit Code Preservation**: Automation reliability through proper exit code propagation
 4. **Fail-Safe**: If filtering fails, fall back to original output
 5. **Transparent**: Users can always see raw output with `-v` flags
 
@@ -537,7 +537,7 @@ When adding Python/Go module support:
 
 - [x] **Output Format**: JSON API > NDJSON > State Machine > Text Filters
 - [x] **Failure Focus**: Hide passing tests, show failures only
-- [x] **Exit Code Preservation**: Propagate tool exit codes for CI/CD
+- [x] **Exit Code Preservation**: Propagate tool exit codes for automation
 - [x] **Virtual Env Awareness**: Python modules respect active virtualenv
 - [x] **Error Grouping**: Group by rule/file for linters (ruff, golangci-lint)
 - [x] **Streaming Support**: Handle interleaved NDJSON events (go test)
@@ -593,7 +593,7 @@ Affects: lint, tsc, next, prettier, playwright, prisma, vitest, pnpm
 - **CWD Preservation**: pnpm/yarn exec preserve working directory correctly
 - **Monorepo Support**: Works in nested package.json structures
 - **No Global Installs**: Uses project-local dependencies only
-- **CI/CD Reliability**: Consistent behavior across environments
+- **Automation Reliability**: Consistent behavior across environments
 
 ---
 
@@ -687,7 +687,7 @@ eprintln!("Error: {:#}", err)
 std::process::exit(1)
 ```
 
-### Exit Code Preservation (Critical for CI/CD)
+### Exit Code Preservation (Critical for Automation)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -715,7 +715,7 @@ Exit Codes:
 └─────────┴──────────────────────────────────────────────────────┘
 
 Why This Matters:
-• CI/CD pipelines rely on exit codes to determine build success/failure
+• Automated pipelines rely on exit codes to determine build success/failure
 • Pre-commit hooks need accurate failure signals
 • Git workflows require proper exit code propagation (PR #5 fix)
 
@@ -902,7 +902,7 @@ Overhead Sources:
 | **Token** | Unit of text processed by LLMs (~4 characters on average) |
 | **Filtering** | Reducing output size while preserving essential information |
 | **Proxy Pattern** | rtk sits between user and tool, transforming output |
-| **Exit Code Preservation** | Passing through tool's exit code for CI/CD reliability |
+| **Exit Code Preservation** | Passing through tool's exit code for automation reliability |
 | **Package Manager Detection** | Identifying pnpm/yarn/npm to execute JS/TS tools correctly |
 | **Verbosity Levels** | `-v/-vv/-vvv` for progressively more debug output |
 | **Ultra-Compact** | `-u` flag for maximum compression (ASCII icons, inline format) |

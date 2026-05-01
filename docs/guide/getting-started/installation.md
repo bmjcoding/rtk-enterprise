@@ -14,7 +14,7 @@ install -m 0755 target/release/rtk "$HOME/.local/bin/rtk"
 
 ## Internal Distribution
 
-Build once in controlled CI, then publish through your organization's package channel with:
+Build once in a controlled internal build system, then publish through your organization's package channel with:
 
 - SHA-256 checksums
 - SPDX SBOM

@@ -44,7 +44,7 @@ This gate checks:
 - Removed telemetry, tracking, analytics, and usage-history command surfaces
 - Absence of direct network, HTTP client, and SQLite usage-database dependencies
 - Remote documentation beacon removal
-- External AI, webhook, and reporting workflow removal
+- Public GitHub automation removal
 - Dependency policy
 - RustSec advisory status
 - Current-tree secret scan
@@ -99,15 +99,13 @@ For internally built packages, verify:
 - Package hash matches the reviewed binary or package manifest.
 - SBOM identifies the same dependency graph as `cargo metadata --locked`.
 - Signature identity matches the approved internal signing identity.
-- Provenance identifies the approved repository, commit, workflow, and builder.
+- Provenance identifies the approved repository, commit, internal workflow or manual build procedure, and builder.
 
-For GitHub release artifacts, verify signatures and attestations with the repository identity expected by the enterprise.
-
-The public GitHub release workflow is intentionally explicit/manual. It must run the enterprise release gate before package builds and should not rely on automatic write-capable branch-push CD.
+This public repository intentionally has no GitHub release workflow. Internal release automation must run the enterprise release gate before package builds and should not rely on automatic write-capable branch-push CD.
 
 ## 7. Verify Hosted Repository Controls
 
-For the public source repository, verify that GitHub-side controls match the enterprise source controls:
+For the public source repository, verify that GitHub-side controls match the enterprise source controls and that public GitHub Actions is disabled:
 
 ```bash
 scripts/verify-repo-controls.sh bmjcoding/rtk-enterprise main | tee enterprise-evidence/repository-controls.txt
@@ -136,7 +134,7 @@ The approval record should include:
 - Test result
 - Binary or package hash
 - SBOM
-- Signature and attestation verification
+- Signature and attestation verification from the approved internal pipeline
 - Hosted repository controls or internal mirror controls
 - Endpoint policy validation result
 - Any exceptions and compensating controls

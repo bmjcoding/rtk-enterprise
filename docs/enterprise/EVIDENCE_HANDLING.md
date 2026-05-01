@@ -11,7 +11,7 @@ The public repository should contain:
 - Audit scripts
 - Dependency policy
 - SAST rules
-- CI and release workflow definitions
+- Documentation that public GitHub Actions and repository-local build/release automation are intentionally absent
 
 The public repository should not contain generated enterprise evidence bundles.
 
@@ -59,7 +59,7 @@ Store the generated bundle with:
 
 - Source commit SHA
 - Internal mirror commit SHA if different
-- Source-control hashes for workflow, audit, and release-control inputs
+- Source-control hashes for audit and release-control inputs
 - Release package name and version
 - Binary or package hash
 - SBOM

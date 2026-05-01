@@ -25,25 +25,24 @@ RTK is a CLI tool that executes shell commands and handles user input. PRs from 
 
 ---
 
-## Automated Security Checks
+## Local Security Checks
 
-Every PR triggers the security jobs in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+This public enterprise source tree intentionally does not include a `.github/` directory or public GitHub Actions automation. Reviewers and internal release owners must run the local gates, or mirror them in an approved internal build system:
 
 1. **Dependency audit** (`cargo audit`) - Detects known CVEs
 2. **Dependency policy** (`cargo deny`) - Blocks banned network/database/reporting crates and unknown sources
 3. **Secret scan** (`gitleaks dir`) - Blocks committed secrets in the current source tree
-4. **SAST** (`semgrep`) - Blocks telemetry, direct egress, local usage database, and workflow exfiltration patterns
+4. **SAST** (`semgrep`) - Blocks telemetry, direct egress, local usage database, and automation exfiltration patterns
 5. **Enterprise audit** (`scripts/enterprise-audit.sh`) - Verifies removed commands, default no-persistence behavior, and egress denylist
-6. **Critical files alert** - Flags modifications to high-risk files
-7. **Dangerous pattern scan** - Regex-based detection of:
-   - Shell execution (`Command::new("sh")`)
-   - Environment manipulation (`.env("LD_PRELOAD")`)
-   - Network operations (`reqwest::`, `std::net::`)
-   - Unsafe code blocks
-   - Panic-inducing patterns (`.unwrap()` in production)
-8. **Clippy security lints** - Enforces Rust best practices
 
-Results are posted in the PR's GitHub Actions summary.
+Run the full local gate before accepting a source revision:
+
+```bash
+scripts/enterprise-audit.sh
+cargo test --locked --all
+cargo build --locked --release
+scripts/release-evidence.sh
+```
 
 ---
 
@@ -52,9 +51,9 @@ Results are posted in the PR's GitHub Actions summary.
 The enterprise fork should be hosted with repository controls that match the source-tree guardrails:
 
 - `main` is the protected default branch
-- CODEOWNERS review is required for protected-branch changes
 - signed commits are required on `main`
-- status checks from `.github/workflows/ci.yml` are required before merge
+- public GitHub Actions are disabled
+- no required GitHub Actions status checks are configured
 - force pushes and branch deletion are disabled on `main`
 - stale PR approvals are dismissed after new pushes
 - conversations must be resolved before merge
@@ -83,9 +82,9 @@ The following files are considered **high-risk** and trigger mandatory 2-reviewe
 - **`src/pnpm_cmd.rs`** - Package name validation (prevents injection via malicious names)
 - **`src/container.rs`** - Docker/container operations (privilege escalation risk)
 
-### Tier 3: Supply Chain & CI/CD
+### Tier 3: Supply Chain
 - **`Cargo.toml`** - Dependency manifest (typosquatting, backdoored crates)
-- **`.github/workflows/*.yml`** - CI/CD pipelines (release tampering, secret exfiltration)
+- **`deny.toml`** / **`.semgrep.yml`** - Dependency and SAST policy controls
 
 **If your PR modifies ANY of these files**, expect:
 - Detailed manual security review
@@ -98,7 +97,7 @@ The following files are considered **high-risk** and trigger mandatory 2-reviewe
 
 ### For External Contributors
 
-1. **Submit PR** → Automated CI and enterprise audit gates run
+1. **Submit PR** → Maintainer runs the local enterprise gate or approved internal build system
 2. **Review automated results** → Fix any flagged issues
 3. **Manual review** → Maintainer performs comprehensive security audit
 4. **Approval** → Merge (or request for changes)
@@ -114,8 +113,8 @@ Use the comprehensive security review process:
 # Manual review:
 gh pr view <PR_NUMBER>
 gh pr diff <PR_NUMBER> > /tmp/pr.diff
-gh pr checks <PR_NUMBER>
 scripts/enterprise-audit.sh
+cargo test --locked --all
 ```
 
 **Review checklist:**
@@ -179,7 +178,7 @@ The enterprise gate enforces:
 - No HTTP client, socket, telemetry vendor, or SQLite usage-database dependencies
 - No first-run file creation for read-only `rtk config`
 - No remote badge/image beacons in user-facing docs
-- No external AI/webhook/reporting calls in workflows
+- No public GitHub Actions workflow tree
 - Clean SAST, SCA, and current-tree secret scans
 
 Release artifacts must include:
@@ -187,7 +186,7 @@ Release artifacts must include:
 - SHA-256 checksums
 - SPDX SBOM
 - Sigstore/cosign signatures and certificates
-- GitHub build provenance attestations
+- Build provenance attestations from the approved internal pipeline
 - SBOM attestations
 
 Do not distribute a clone with the original upstream `.git` history as the enterprise source package. The historical upstream Git graph contains removed telemetry and reporting code. For enterprise intake, distribute a signed release artifact or a fresh internal mirror/squash import of this sanitized tree.
@@ -256,11 +255,11 @@ Critical vulnerabilities (remote code execution, data exfiltration) may be fast-
 
 ## Security Tooling
 
-- **`cargo audit`** - Automated CVE scanning (runs in CI)
+- **`cargo audit`** - CVE scanning for local gates or approved internal build systems
 - **`cargo deny`** - License compliance + banned dependencies
 - **`cargo clippy`** - Lints for unsafe patterns
-- **GitHub Dependabot** - Automated dependency updates
-- **GitHub Code Scanning** - Static analysis via CodeQL (planned)
+- **Internal dependency intake** - Approved mirror, SCA, and manual review before dependency bumps
+- **Internal static analysis** - SAST in the enterprise-controlled build environment
 
 ---
 

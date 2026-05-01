@@ -23,7 +23,7 @@ echo "Updating README metrics from $REPORT..."
 if grep -q "<!-- BENCHMARK_TABLE_START -->" "$README" && grep -q "<!-- BENCHMARK_TABLE_END -->" "$README"; then
   echo "✓ Markers found in README"
   echo "✓ README is ready for automated updates"
-  echo "  (Metrics update implementation complete - will run on CI)"
+  echo "  (Metrics update implementation complete - ready for internal automation)"
 else
   echo "✗ Markers not found in README"
   exit 1

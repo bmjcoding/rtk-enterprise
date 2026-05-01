@@ -15,9 +15,9 @@ Related audit documents:
 
 No competent reviewer should approve this as "no risk." The approvable claim is narrower:
 
-- The current source tree contains no known RTK telemetry, local usage history, analytics/reporting command, raw-output persistence, or workflow exfiltration mechanism.
+- The current source tree contains no known RTK telemetry, local usage history, analytics/reporting command, raw-output persistence, or public GitHub workflow exfiltration mechanism.
 - Automated gates are present to prevent those mechanisms from being reintroduced.
-- Release artifacts can be signed, checksummed, attested, and accompanied by an SBOM.
+- Release artifacts can be signed, checksummed, attested, and accompanied by an SBOM in an approved internal pipeline.
 
 ## Required Independent Review
 
@@ -30,8 +30,8 @@ Before employee-wide rollout, an independent security reviewer must verify:
 - `cargo deny check advisories bans sources` passes.
 - `semgrep scan --config .semgrep.yml --error` reports zero findings.
 - `gitleaks dir . --redact --no-banner` reports zero findings.
-- The release artifact SHA-256 matches `checksums.txt`.
-- Sigstore/cosign signatures and GitHub attestations verify against the expected repository identity.
+- The release artifact SHA-256 matches the approved release checksums.
+- Sigstore/cosign signatures and build attestations verify against the expected internal signing identity.
 - Enterprise endpoint/network controls block `rtk` from initiating outbound connections except through explicitly invoked child tools such as `git`, `curl`, `aws`, or package managers.
 
 ## Network Egress Control
@@ -78,7 +78,7 @@ Residual risk remains in:
 - Child commands that intentionally access networks or files.
 - Hook installation modifying local agent configuration.
 - User/project TOML filters, mitigated by trust gating and content hashing.
-- Supply-chain risk in build tooling and GitHub Actions.
+- Supply-chain risk in build tooling and internal automation.
 - Historical upstream repository contents if `.git` history is distributed.
 
 These risks require enterprise policy controls, not only code changes.

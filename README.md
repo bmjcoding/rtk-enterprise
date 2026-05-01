@@ -22,9 +22,9 @@ This enterprise fork keeps the useful command-filtering behavior while removing 
 - No outbound product reporting from RTK itself
 - No local usage-history database
 - No raw-output persistence by default
-- No external AI or release-notification calls in CI/CD
+- No public GitHub Actions, repository-local automation, or release-notification automation in this repository
 - No HTTP client, socket, reporting vendor, or SQLite usage-database crates
-- Release support for SBOMs, checksums, cosign signatures, and GitHub build attestations
+- Release evidence support for SBOMs, checksums, cosign signatures, and build attestations in an internal pipeline
 - Local audit gates for SCA, SAST, current-tree secret scanning, removed command surfaces, and first-run persistence
 
 RTK is still a command proxy. Commands you explicitly run through it, such as `rtk curl`, `rtk aws`, `rtk gh`, or package managers, can access the network because those child tools are user-invoked. Enterprise endpoint policy should block RTK itself from initiating direct outbound connections and govern child tools separately.
@@ -78,7 +78,7 @@ Why this path is preferred:
 
 ### Internal Package Distribution
 
-For broad employee rollout, build once in your controlled CI environment and distribute through an internal package channel:
+For broad employee rollout, build once in your controlled internal build system and distribute through an internal package channel:
 
 ```bash
 scripts/enterprise-audit.sh
@@ -126,9 +126,8 @@ This fork is designed to be reviewable by enterprise security teams rather than 
 - `scripts/verify-egress-guard.sh` - negative self-test proving the build guard fails closed for direct socket source and forbidden lockfile dependencies
 - `build.rs` - build-time direct-egress guard that fails compilation if RTK-owned runtime source adds socket/HTTP/database APIs or banned network/database crates
 - `deny.toml` - dependency policy blocking network/client/database/reporting crates and unknown sources
-- `.semgrep.yml` - custom SAST rules for direct network egress, local usage databases, removed commands, and CI/CD exfiltration paths
-- `.github/workflows/ci.yml` - CI enforcement for tests, SCA, dependency policy, SAST, and enterprise audit
-- `.github/workflows/release.yml` - explicit/manual release flow with enterprise gate, SBOM, checksums, cosign signatures, and GitHub attestations for release assets
+- `.semgrep.yml` - custom SAST rules for direct network egress, local usage databases, removed commands, and automation exfiltration paths
+- No `.github/` tree - public GitHub Actions, release workflows, CODEOWNERS, templates, and repo-local automation hooks are intentionally absent
 - `docs/enterprise/README.md` - index of public enterprise audit documentation
 - `docs/enterprise/AUDIT_SUMMARY.md` - hardening summary, review scope, added controls, and residual risk
 - `docs/enterprise/NO_TELEMETRY_POSITION.md` - formal boundary for the no data-collection claim
@@ -331,7 +330,7 @@ The most effective way to use rtk. The hook transparently intercepts Bash comman
 ```bash
 rtk init -g                 # Install hook + RTK.md (recommended)
 rtk init -g --opencode      # OpenCode plugin (instead of Claude Code)
-rtk init -g --auto-patch    # Non-interactive (CI/CD)
+rtk init -g --auto-patch    # Non-interactive automation
 rtk init -g --hook-only     # Hook only, no RTK.md
 rtk init --show             # Verify installation
 ```

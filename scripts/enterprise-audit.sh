@@ -72,20 +72,20 @@ run_no_match "no direct HTTP/network/database crates or APIs in runtime sources"
   rg -n --hidden --glob '!target/**' --glob '!enterprise-evidence/**' --glob '!.git/**' --glob '!deny.toml' --glob '!.semgrep.yml' --glob '!scripts/enterprise-audit.sh' -i '\b(ureq|reqwest|hyper|isahc|surf|TcpStream|UdpSocket|TcpListener|ToSocketAddrs|webhook|send_string|send_json|client\.get|client\.post|Connection::open|rusqlite|libsqlite3|sqlite)\b' src Cargo.toml Cargo.lock
 
 run_no_match "no remote badge/image beacons in docs" \
-  rg -n '<img src="https://|img\.shields\.io|discord\.gg|avatars\.githubusercontent\.com|workflows/.*/badge|badge\.svg' README* docs hooks .github --hidden --glob '!target/**' --glob '!enterprise-evidence/**'
+  rg -n '<img src="https://|img\.shields\.io|discord\.gg|avatars\.githubusercontent\.com|workflows/.*/badge|badge\.svg' README* docs hooks --hidden --glob '!target/**' --glob '!enterprise-evidence/**'
 
-run_no_match "no external AI/webhook/reporting release hooks" \
-  rg -n --hidden --glob '!target/**' --glob '!enterprise-evidence/**' --glob '!.git/**' --glob '!scripts/enterprise-audit.sh' --glob '!docs/enterprise/**' -i 'ANTHROPIC|DISCORD|WEBHOOK|RTK_TELEMETRY|TELEMETRY_URL|api\.anthropic\.com' .github scripts docs src hooks
+run_no_match "no external AI/webhook/reporting automation hooks" \
+  rg -n --hidden --glob '!target/**' --glob '!enterprise-evidence/**' --glob '!.git/**' --glob '!scripts/enterprise-audit.sh' --glob '!docs/enterprise/**' -i 'ANTHROPIC|DISCORD|WEBHOOK|RTK_TELEMETRY|TELEMETRY_URL|api\.anthropic\.com' scripts docs src hooks
 
-section "Workflow hardening"
-run_no_match "no pull_request_target workflows" \
-  rg -n --hidden 'pull_request_target' .github/workflows
+section "Public GitHub automation"
+if [ -d .github ]; then
+  fail ".github directory is present"
+else
+  pass ".github directory is absent"
+fi
 
-run_no_match "no stale develop/master workflow refs" \
-  rg -n --hidden '\b(develop|master|origin/master|refs/heads/master)\b' .github/workflows .github/copilot-instructions.md scripts/check-test-presence.sh
-
-run_no_match "no stored GitHub App token release secrets" \
-  rg -n --hidden --glob '!scripts/enterprise-audit.sh' 'create-github-app-token|APP_CLIENT_ID|APP_PRIVATE_KEY' .github/workflows scripts docs
+run_no_match "no public GitHub workflow references" \
+  rg -n --hidden --glob '!target/**' --glob '!enterprise-evidence/**' --glob '!.git/**' --glob '!scripts/enterprise-audit.sh' '\.github/workflows|pull_request_target|create-github-app-token|APP_CLIENT_ID|APP_PRIVATE_KEY' README* docs scripts
 
 section "Dependency denylist"
 if cargo tree --locked | rg -i '\b(ureq|reqwest|hyper|h2|http-body|socket|tls|openssl|native-tls|rustls|webpki|sentry|opentelemetry|posthog|amplitude|mixpanel|rusqlite|sqlite|libsqlite3)\b'; then

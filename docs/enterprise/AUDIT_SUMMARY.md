@@ -28,7 +28,7 @@ The enterprise fork removes or disables source surfaces that would be inappropri
 - Usage-learning, discovery, economics, session, telemetry, and hook-audit command surfaces
 - Raw command-output tee persistence by default
 - Release notification or external update-ping behavior
-- External AI, webhook, or reporting calls in CI/CD workflows
+- Public GitHub Actions and release workflow automation
 - Public installer script and public Homebrew formula distribution path
 - Dependency paths that introduced HTTP clients, socket clients, TLS client stacks, reporting vendors, or SQLite usage-database crates
 
@@ -43,11 +43,10 @@ The source tree includes controls intended to keep the enterprise posture review
 - [build.rs](../../build.rs): build-time direct-egress guard that fails compilation if RTK-owned runtime source adds direct socket, HTTP client, or local database APIs, or if banned network/database crates enter the lockfile
 - [scripts/release-evidence.sh](../../scripts/release-evidence.sh): evidence bundle generator for metadata, dependency tree, dependency audit output, SAST output, current-tree secret scan output, hashes, and SBOM generation when available
 - [deny.toml](../../deny.toml): dependency policy banning network, telemetry, reporting, database, and unknown-source dependency classes
-- [.semgrep.yml](../../.semgrep.yml): SAST rules for direct network egress, HTTP client use, local usage databases, removed command surfaces, and workflow exfiltration paths
-- [.github/workflows/ci.yml](../../.github/workflows/ci.yml): CI enforcement for build, tests, dependency policy, SAST, current-tree secret scanning, and enterprise audit
-- [.github/workflows/release.yml](../../.github/workflows/release.yml): explicit release packaging gated by the enterprise audit and full test suite, with checksums, SBOM support, cosign signing, and provenance attestation support
+- [.semgrep.yml](../../.semgrep.yml): SAST rules for direct network egress, HTTP client use, local usage databases, removed command surfaces, and automation exfiltration paths
+- No `.github/` tree: public GitHub Actions, release workflows, CODEOWNERS, templates, and repo-local automation hooks are intentionally absent
 
-Write-capable branch-push CD and `pull_request_target` automation are intentionally absent from the enterprise fork. Releases should be explicit, reviewed, and tied to a recorded commit and evidence package.
+Public GitHub automation and privileged PR-trigger automation are intentionally absent from the enterprise fork. Releases should run through approved internal automation or a manual reviewer workflow tied to a recorded commit and evidence package.
 
 ## Verification Status
 
@@ -69,7 +68,7 @@ The hardening work does not eliminate every deployment risk. Residual risk remai
 - User-invoked child tools that intentionally access networks or files
 - Hook installation that modifies local agent/tool configuration
 - Project-level configuration supplied by users or repositories
-- Supply-chain compromise in build tools, dependencies, GitHub Actions, or internal package systems
+- Supply-chain compromise in build tools, dependencies, internal automation, or internal package systems
 - Operational misconfiguration of endpoint, firewall, proxy, or EDR policy
 - Human approval processes that do not pin evidence to the exact shipped commit
 

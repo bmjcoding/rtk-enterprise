@@ -82,6 +82,7 @@ web_commit_signoff_required="$(gh api "repos/$REPO" --jq '.web_commit_signoff_re
 secret_scanning="$(gh api "repos/$REPO" --jq '.security_and_analysis.secret_scanning.status')"
 push_protection="$(gh api "repos/$REPO" --jq '.security_and_analysis.secret_scanning_push_protection.status')"
 dependabot_updates="$(gh api "repos/$REPO" --jq '.security_and_analysis.dependabot_security_updates.status')"
+actions_enabled="$(gh api "repos/$REPO/actions/permissions" --jq '.enabled')"
 
 expect_value "default branch" "$default_branch" "$BRANCH"
 expect_value "delete branch on merge" "$delete_branch_on_merge" "true"
@@ -89,6 +90,7 @@ expect_value "web commit signoff" "$web_commit_signoff_required" "true"
 expect_value "secret scanning" "$secret_scanning" "enabled"
 expect_value "secret scanning push protection" "$push_protection" "enabled"
 expect_value "Dependabot security updates" "$dependabot_updates" "disabled"
+expect_value "GitHub Actions" "$actions_enabled" "false"
 
 protection="repos/$REPO/branches/$BRANCH/protection"
 expect_enabled "admin enforcement" "$protection/enforce_admins"
@@ -103,7 +105,7 @@ require_code_owner_reviews="$(gh api "$required_reviews" --jq '.require_code_own
 dismiss_stale_reviews="$(gh api "$required_reviews" --jq '.dismiss_stale_reviews')"
 required_approvals="$(gh api "$required_reviews" --jq '.required_approving_review_count')"
 
-expect_value "CODEOWNERS review" "$require_code_owner_reviews" "true"
+expect_value "CODEOWNERS review" "$require_code_owner_reviews" "false"
 expect_value "stale approval dismissal" "$dismiss_stale_reviews" "true"
 if [ "$required_approvals" -ge 1 ]; then
   pass "required approvals is $required_approvals"
@@ -111,25 +113,8 @@ else
   fail "required approvals is $required_approvals, expected at least 1"
 fi
 
-contexts="$(gh api "$protection/required_status_checks" --jq '.contexts[]')"
-for required_context in \
-  "test presence" \
-  "fmt" \
-  "clippy" \
-  "test (ubuntu-latest)" \
-  "test (windows-latest)" \
-  "test (macos-latest)" \
-  "Security Scan" \
-  "semgrep security scan" \
-  "enterprise data-egress audit" \
-  "benchmark"
-do
-  if printf '%s\n' "$contexts" | grep -Fxq "$required_context"; then
-    pass "required status check present: $required_context"
-  else
-    fail "missing required status check: $required_context"
-  fi
-done
+status_check_count="$(gh api "$protection" --jq '(.required_status_checks.contexts // []) | length')"
+expect_value "required status check count" "$status_check_count" "0"
 
 if [ "$failures" -ne 0 ]; then
   printf 'Repository controls failed with %s finding(s).\n' "$failures" >&2

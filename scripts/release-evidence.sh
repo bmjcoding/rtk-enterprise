@@ -31,10 +31,6 @@ sha256sum \
   Cargo.toml \
   deny.toml \
   .semgrep.yml \
-  .github/CODEOWNERS \
-  .github/workflows/CICD.md \
-  .github/workflows/ci.yml \
-  .github/workflows/release.yml \
   scripts/enterprise-audit.sh \
   scripts/release-evidence.sh \
   scripts/verify-repo-controls.sh \
