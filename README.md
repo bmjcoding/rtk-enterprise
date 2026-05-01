@@ -123,11 +123,12 @@ rtk --help      # Should show available commands
 This fork is designed to be reviewable by enterprise security teams rather than trusted by assertion. The primary controls are:
 
 - `scripts/enterprise-audit.sh` - local gate for source, dependency, SAST, secret-scan, runtime command-surface, and persistence checks
+- `scripts/verify-egress-guard.sh` - negative self-test proving the build guard fails closed for direct socket source and forbidden lockfile dependencies
 - `build.rs` - build-time direct-egress guard that fails compilation if RTK-owned runtime source adds socket/HTTP/database APIs or banned network/database crates
 - `deny.toml` - dependency policy blocking network/client/database/reporting crates and unknown sources
 - `.semgrep.yml` - custom SAST rules for direct network egress, local usage databases, removed commands, and CI/CD exfiltration paths
 - `.github/workflows/ci.yml` - CI enforcement for tests, SCA, dependency policy, SAST, and enterprise audit
-- `.github/workflows/release.yml` - SBOM, checksums, cosign signatures, and GitHub attestations for release assets
+- `.github/workflows/release.yml` - explicit/manual release flow with enterprise gate, SBOM, checksums, cosign signatures, and GitHub attestations for release assets
 - `docs/enterprise/README.md` - index of public enterprise audit documentation
 - `docs/enterprise/AUDIT_SUMMARY.md` - hardening summary, review scope, added controls, and residual risk
 - `docs/enterprise/NO_TELEMETRY_POSITION.md` - formal boundary for the no data-collection claim

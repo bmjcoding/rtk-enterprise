@@ -38,6 +38,7 @@ scripts/enterprise-audit.sh
 cargo test --locked --all
 cargo build --locked --release
 scripts/release-evidence.sh
+scripts/verify-repo-controls.sh bmjcoding/rtk-enterprise main | tee enterprise-evidence/repository-controls.txt
 ```
 
 The default output directory is:
@@ -58,10 +59,12 @@ Store the generated bundle with:
 
 - Source commit SHA
 - Internal mirror commit SHA if different
+- Source-control hashes for workflow, audit, and release-control inputs
 - Release package name and version
 - Binary or package hash
 - SBOM
 - Signature and attestation verification output
+- Hosted repository control verification output, or equivalent internal mirror control evidence
 - Reviewer approvals
 - Any exceptions and compensating controls
 

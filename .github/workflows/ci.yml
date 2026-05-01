@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches: [develop, master]
+    branches: [main]
 
 permissions:
   contents: read
@@ -16,11 +18,13 @@ jobs:
 
   check-test-presence:
     name: test presence
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
+          persist-credentials: false
       - name: Check filter modules have tests
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1 || true
@@ -31,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -42,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -60,6 +68,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --locked --all
@@ -72,6 +82,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -82,112 +93,152 @@ jobs:
 
       - name: Cargo Audit (CVE check)
         run: |
-          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
           if cargo audit --deny warnings 2>&1 | tee audit.log; then
-            echo "No known vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+            audit_failed=0
           else
-            echo "Vulnerabilities found:" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat audit.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            audit_failed=1
+          fi
+          {
+            echo "## Security Scan Results"
+            echo ""
+            echo "### Dependency Vulnerabilities"
+            if [ "$audit_failed" -eq 0 ]; then
+              echo "No known vulnerabilities detected"
+            else
+              echo "Vulnerabilities found:"
+              echo '```'
+              cat audit.log
+              echo '```'
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$audit_failed" -ne 0 ]; then
             echo "::error::Dependency vulnerabilities detected"
             exit 1
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Cargo Deny (policy check)
         run: cargo deny check advisories bans sources
 
       - name: Critical files check
+        if: github.event_name == 'pull_request'
         run: |
-          echo "### Critical Files Modified" >> $GITHUB_STEP_SUMMARY
-          CRITICAL=$(git diff --name-only origin/master...HEAD | grep -E "(runner|summary|execution|init|pnpm_cmd|container)\.rs|Cargo\.toml|workflows/.*\.yml" || true)
+          CRITICAL=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -E "(runner|summary|execution|init|pnpm_cmd|container)\.rs|Cargo\.toml|workflows/.*\.yml" || true)
+          {
+            echo "### Critical Files Modified"
+            if [ -n "$CRITICAL" ]; then
+              echo "**HIGH RISK**: The following critical files were modified:"
+              echo '```'
+              echo "$CRITICAL"
+              echo '```'
+              echo ""
+              echo "**Required Actions:**"
+              echo "- [ ] Manual security review by 2 maintainers"
+              echo "- [ ] Verify no shell injection vectors"
+              echo "- [ ] Check input validation remains intact"
+            else
+              echo "No critical files modified"
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ -n "$CRITICAL" ]; then
-            echo "**HIGH RISK**: The following critical files were modified:" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "$CRITICAL" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Required Actions:**" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Manual security review by 2 maintainers" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Verify no shell injection vectors" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Check input validation remains intact" >> $GITHUB_STEP_SUMMARY
             echo "::warning::Critical RTK files modified - enhanced review required"
-          else
-            echo "No critical files modified" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Dangerous patterns scan
+        if: github.event_name == 'pull_request'
         run: |
-          echo "### Dangerous Code Patterns" >> $GITHUB_STEP_SUMMARY
-          PATTERNS=$(git diff origin/master...HEAD | grep -E "Command::new\(\"sh\"|Command::new\(\"bash\"|\.env\(\"LD_PRELOAD|\.env\(\"PATH|reqwest::|std::net::|TcpStream|UdpSocket|unsafe \{|\.unwrap\(\) |panic!\(|todo!\(|unimplemented!\(" || true)
+          PATTERNS=$(git diff "origin/${{ github.base_ref }}...HEAD" | grep -E "Command::new\(\"sh\"|Command::new\(\"bash\"|\.env\(\"LD_PRELOAD|\.env\(\"PATH|reqwest::|std::net::|TcpStream|UdpSocket|unsafe \{|\.unwrap\(\) |panic!\(|todo!\(|unimplemented!\(" || true)
+          {
+            echo "### Dangerous Code Patterns"
+            if [ -n "$PATTERNS" ]; then
+              echo "**Potentially dangerous patterns detected:**"
+              echo '```diff'
+              echo "$PATTERNS" | head -30
+              echo '```'
+              echo ""
+              echo "**Security Concerns:**"
+              echo "$PATTERNS" | grep -q "Command::new" && echo "- Shell command execution detected" || true
+              echo "$PATTERNS" | grep -q "\.env\(\"" && echo "- Environment variable manipulation" || true
+              echo "$PATTERNS" | grep -q "reqwest::\|std::net::\|TcpStream\|UdpSocket" && echo "- Network operations added" || true
+              echo "$PATTERNS" | grep -q "unsafe" && echo "- Unsafe code blocks" || true
+              echo "$PATTERNS" | grep -q "\.unwrap\(\)\|panic!\(" && echo "- Panic-inducing code" || true
+            else
+              echo "No dangerous patterns detected"
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ -n "$PATTERNS" ]; then
-            echo "**Potentially dangerous patterns detected:**" >> $GITHUB_STEP_SUMMARY
-            echo '```diff' >> $GITHUB_STEP_SUMMARY
-            echo "$PATTERNS" | head -30 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Security Concerns:**" >> $GITHUB_STEP_SUMMARY
-            echo "$PATTERNS" | grep -q "Command::new" && echo "- Shell command execution detected" >> $GITHUB_STEP_SUMMARY || true
-            echo "$PATTERNS" | grep -q "\.env\(\"" && echo "- Environment variable manipulation" >> $GITHUB_STEP_SUMMARY || true
-            echo "$PATTERNS" | grep -q "reqwest::\|std::net::\|TcpStream\|UdpSocket" && echo "- Network operations added" >> $GITHUB_STEP_SUMMARY || true
-            echo "$PATTERNS" | grep -q "unsafe" && echo "- Unsafe code blocks" >> $GITHUB_STEP_SUMMARY || true
-            echo "$PATTERNS" | grep -q "\.unwrap\(\)\|panic!\(" && echo "- Panic-inducing code" >> $GITHUB_STEP_SUMMARY || true
             echo "::warning::Dangerous code patterns detected - manual review required"
-          else
-            echo "No dangerous patterns detected" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: New dependencies check
+        if: github.event_name == 'pull_request'
         run: |
-          echo "### Dependencies Changes" >> $GITHUB_STEP_SUMMARY
-          if git diff origin/master...HEAD Cargo.toml | grep -E "^\+.*=" | grep -v "^\+\+\+" > new_deps.txt; then
-            echo "**New dependencies added:**" >> $GITHUB_STEP_SUMMARY
-            echo '```toml' >> $GITHUB_STEP_SUMMARY
-            cat new_deps.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Required Actions:**" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Audit each new dependency on crates.io" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Check maintainer reputation and download counts" >> $GITHUB_STEP_SUMMARY
-            echo "- [ ] Verify no typosquatting (e.g., 'reqwest' vs 'request')" >> $GITHUB_STEP_SUMMARY
-            echo "::warning::New dependencies require supply chain audit"
+          if git diff "origin/${{ github.base_ref }}...HEAD" Cargo.toml | grep -E "^\+.*=" | grep -v "^\+\+\+" > new_deps.txt; then
+            deps_added=1
           else
-            echo "No new dependencies added" >> $GITHUB_STEP_SUMMARY
+            deps_added=0
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Dependencies Changes"
+            if [ "$deps_added" -eq 1 ]; then
+              echo "**New dependencies added:**"
+              echo '```toml'
+              cat new_deps.txt
+              echo '```'
+              echo ""
+              echo "**Required Actions:**"
+              echo "- [ ] Audit each new dependency on crates.io"
+              echo "- [ ] Check maintainer reputation and download counts"
+              echo "- [ ] Verify no typosquatting (e.g., 'reqwest' vs 'request')"
+            else
+              echo "No new dependencies added"
+            fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$deps_added" -eq 1 ]; then
+            echo "::warning::New dependencies require supply chain audit"
+          fi
 
       - name: Clippy security lints
         run: |
-          echo "### Clippy Security Lints" >> $GITHUB_STEP_SUMMARY
           if cargo clippy --locked --all-targets -- -A warnings -W clippy::unwrap_used -W clippy::panic -W clippy::expect_used 2>&1 | tee clippy.log | grep -E "warning:|error:"; then
-            echo "Security-related lints triggered:" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -E "warning:|error:" clippy.log | head -20 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "::warning::Clippy security lints failed"
+            clippy_triggered=1
           else
-            echo "All security lints passed" >> $GITHUB_STEP_SUMMARY
+            clippy_triggered=0
+          fi
+          {
+            echo "### Clippy Security Lints"
+            if [ "$clippy_triggered" -eq 1 ]; then
+              echo "Security-related lints triggered:"
+              echo '```'
+              grep -E "warning:|error:" clippy.log | head -20
+              echo '```'
+            else
+              echo "All security lints passed"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$clippy_triggered" -eq 1 ]; then
+            echo "::warning::Clippy security lints failed"
           fi
 
       - name: Summary verdict
         run: |
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Security Review Verdict" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**This is an automated security scan. A human maintainer must:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review all warnings above" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify PR intent matches actual code changes" >> $GITHUB_STEP_SUMMARY
-          echo "3. Check for subtle backdoors or logic bombs" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**For high-risk PRs (critical files modified):**" >> $GITHUB_STEP_SUMMARY
-          echo "- Require approval from 2 maintainers" >> $GITHUB_STEP_SUMMARY
-          echo "- Test in isolated environment before merge" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "---"
+            echo ""
+            echo "### Security Review Verdict"
+            echo ""
+            echo "**This is an automated security scan. A human maintainer must:**"
+            echo "1. Review all warnings above"
+            echo "2. Verify PR intent matches actual code changes"
+            echo "3. Check for subtle backdoors or logic bombs"
+            echo ""
+            echo "**For high-risk PRs (critical files modified):**"
+            echo "- Require approval from 2 maintainers"
+            echo "- Test in isolated environment before merge"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   semgrep:
     name: semgrep security scan
@@ -199,6 +250,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - run: semgrep scan --config .semgrep.yml --error
 
   enterprise-audit:
@@ -209,6 +261,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -240,6 +293,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
 

@@ -52,10 +52,14 @@ section "Tooling"
 require_tool rg
 require_tool cargo
 require_tool git
+require_tool tar
 
 section "Formatting and build"
 cargo fmt --check || fail "cargo fmt --check"
 cargo check --locked --all-targets || fail "cargo check --locked --all-targets"
+
+section "Preventative guard self-test"
+scripts/verify-egress-guard.sh || fail "direct egress build guard self-test"
 
 section "Enterprise telemetry and tracking denylist"
 run_no_match "no telemetry/tracking/vendor analytics references outside license text" \
@@ -72,6 +76,16 @@ run_no_match "no remote badge/image beacons in docs" \
 
 run_no_match "no external AI/webhook/reporting release hooks" \
   rg -n --hidden --glob '!target/**' --glob '!enterprise-evidence/**' --glob '!.git/**' --glob '!scripts/enterprise-audit.sh' --glob '!docs/enterprise/**' -i 'ANTHROPIC|DISCORD|WEBHOOK|RTK_TELEMETRY|TELEMETRY_URL|api\.anthropic\.com' .github scripts docs src hooks
+
+section "Workflow hardening"
+run_no_match "no pull_request_target workflows" \
+  rg -n --hidden 'pull_request_target' .github/workflows
+
+run_no_match "no stale develop/master workflow refs" \
+  rg -n --hidden '\b(develop|master|origin/master|refs/heads/master)\b' .github/workflows .github/copilot-instructions.md scripts/check-test-presence.sh
+
+run_no_match "no stored GitHub App token release secrets" \
+  rg -n --hidden --glob '!scripts/enterprise-audit.sh' 'create-github-app-token|APP_CLIENT_ID|APP_PRIVATE_KEY' .github/workflows scripts docs
 
 section "Dependency denylist"
 if cargo tree --locked | rg -i '\b(ureq|reqwest|hyper|h2|http-body|socket|tls|openssl|native-tls|rustls|webpki|sentry|opentelemetry|posthog|amplitude|mixpanel|rusqlite|sqlite|libsqlite3)\b'; then

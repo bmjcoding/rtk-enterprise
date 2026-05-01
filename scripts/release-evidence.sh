@@ -31,16 +31,21 @@ sha256sum \
   Cargo.toml \
   deny.toml \
   .semgrep.yml \
+  .github/CODEOWNERS \
+  .github/workflows/CICD.md \
   .github/workflows/ci.yml \
   .github/workflows/release.yml \
   scripts/enterprise-audit.sh \
   scripts/release-evidence.sh \
+  scripts/verify-repo-controls.sh \
+  scripts/verify-egress-guard.sh \
   SECURITY.md \
   docs/enterprise/AUDIT_SUMMARY.md \
   docs/enterprise/EVIDENCE_HANDLING.md \
   docs/enterprise/NETWORK_EGRESS_POLICY.md \
   docs/enterprise/NO_TELEMETRY_POSITION.md \
   docs/enterprise/README.md \
+  docs/enterprise/REPOSITORY_CONTROLS.md \
   docs/enterprise/ROLL_OUT_SECURITY_REVIEW.md \
   docs/enterprise/VERIFICATION_RUNBOOK.md \
   > "$OUT/source-control-sha256.txt"
@@ -85,6 +90,7 @@ Expected contents:
 - `source-control-sha256.txt`: hashes of security-control inputs
 - `rtk-release-sha256.txt`: release binary hash when `target/release/rtk` exists
 - `sbom.spdx.json`: SPDX SBOM when `syft` is installed
+- `repository-controls.txt`: optional hosted repository control check, generated separately with `scripts/verify-repo-controls.sh`
 
 Run `scripts/enterprise-audit.sh` from the repository root before accepting this bundle.
 EOM

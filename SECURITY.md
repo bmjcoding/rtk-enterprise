@@ -47,6 +47,28 @@ Results are posted in the PR's GitHub Actions summary.
 
 ---
 
+## Repository Controls
+
+The enterprise fork should be hosted with repository controls that match the source-tree guardrails:
+
+- `main` is the protected default branch
+- CODEOWNERS review is required for protected-branch changes
+- signed commits are required on `main`
+- status checks from `.github/workflows/ci.yml` are required before merge
+- force pushes and branch deletion are disabled on `main`
+- stale PR approvals are dismissed after new pushes
+- conversations must be resolved before merge
+- GitHub secret scanning and push protection stay enabled
+- Dependabot security updates stay disabled unless dependency intake is moved to an approved internal mirror
+
+Verify the live GitHub settings before rollout:
+
+```bash
+scripts/verify-repo-controls.sh bmjcoding/rtk-enterprise main
+```
+
+---
+
 ## Critical Files Requiring Enhanced Review
 
 The following files are considered **high-risk** and trigger mandatory 2-reviewer approval:
@@ -76,7 +98,7 @@ The following files are considered **high-risk** and trigger mandatory 2-reviewe
 
 ### For External Contributors
 
-1. **Submit PR** → Automated `security-check.yml` runs
+1. **Submit PR** → Automated CI and enterprise audit gates run
 2. **Review automated results** → Fix any flagged issues
 3. **Manual review** → Maintainer performs comprehensive security audit
 4. **Approval** → Merge (or request for changes)
@@ -89,10 +111,11 @@ Use the comprehensive security review process:
 # If Claude Code available, run the dedicated skill:
 /rtk-pr-security <PR_NUMBER>
 
-# Manual review (without Claude):
+# Manual review:
 gh pr view <PR_NUMBER>
 gh pr diff <PR_NUMBER> > /tmp/pr.diff
-bash scripts/detect-dangerous-patterns.sh /tmp/pr.diff
+gh pr checks <PR_NUMBER>
+scripts/enterprise-audit.sh
 ```
 
 **Review checklist:**

@@ -40,6 +40,7 @@ This gate checks:
 - Rust formatting
 - Locked buildability
 - Build-time direct-egress guard enforcement
+- Build-time direct-egress guard negative self-test
 - Removed telemetry, tracking, analytics, and usage-history command surfaces
 - Absence of direct network, HTTP client, and SQLite usage-database dependencies
 - Remote documentation beacon removal
@@ -102,7 +103,19 @@ For internally built packages, verify:
 
 For GitHub release artifacts, verify signatures and attestations with the repository identity expected by the enterprise.
 
-## 7. Validate Endpoint Controls
+The public GitHub release workflow is intentionally explicit/manual. It must run the enterprise release gate before package builds and should not rely on automatic write-capable branch-push CD.
+
+## 7. Verify Hosted Repository Controls
+
+For the public source repository, verify that GitHub-side controls match the enterprise source controls:
+
+```bash
+scripts/verify-repo-controls.sh bmjcoding/rtk-enterprise main | tee enterprise-evidence/repository-controls.txt
+```
+
+This check requires authenticated GitHub API access. Record failures as release blockers unless the source has been imported into an internal repository with equivalent controls.
+
+## 8. Validate Endpoint Controls
 
 Before broad deployment, validate on a managed endpoint:
 
@@ -112,7 +125,7 @@ Before broad deployment, validate on a managed endpoint:
 - The installed binary hash matches the approved package.
 - Hook installation modifies only approved agent configuration paths.
 
-## 8. Approval Record
+## 9. Approval Record
 
 The approval record should include:
 
@@ -124,6 +137,7 @@ The approval record should include:
 - Binary or package hash
 - SBOM
 - Signature and attestation verification
+- Hosted repository controls or internal mirror controls
 - Endpoint policy validation result
 - Any exceptions and compensating controls
 

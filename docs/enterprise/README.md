@@ -7,6 +7,7 @@ This directory contains the public review documentation for RTK Enterprise. Thes
 - [VERIFICATION_RUNBOOK.md](VERIFICATION_RUNBOOK.md): reproducible reviewer workflow for source, tests, build, evidence, and endpoint policy
 - [NETWORK_EGRESS_POLICY.md](NETWORK_EGRESS_POLICY.md): recommended deny-by-default RTK process egress model
 - [EVIDENCE_HANDLING.md](EVIDENCE_HANDLING.md): how to generate, store, redact, and retain audit evidence
+- [REPOSITORY_CONTROLS.md](REPOSITORY_CONTROLS.md): GitHub branch, release, and repository setting controls
 - [ROLL_OUT_SECURITY_REVIEW.md](ROLL_OUT_SECURITY_REVIEW.md): rollout decision standard and review checklist
 
 The accurate approval scope is a specific commit, build, and evidence package. Do not use these documents to claim blanket approval for future commits.

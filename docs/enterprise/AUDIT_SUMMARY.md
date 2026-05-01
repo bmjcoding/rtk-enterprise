@@ -39,12 +39,15 @@ RTK remains a command proxy. User-invoked child tools such as `git`, `gh`, `curl
 The source tree includes controls intended to keep the enterprise posture reviewable:
 
 - [scripts/enterprise-audit.sh](../../scripts/enterprise-audit.sh): local audit gate for formatting, buildability, dependency policy, SAST, current-tree secret scanning, removed command surfaces, and first-run persistence checks
+- [scripts/verify-egress-guard.sh](../../scripts/verify-egress-guard.sh): negative self-test proving the direct-egress build guard rejects injected socket source and forbidden lockfile dependencies
 - [build.rs](../../build.rs): build-time direct-egress guard that fails compilation if RTK-owned runtime source adds direct socket, HTTP client, or local database APIs, or if banned network/database crates enter the lockfile
 - [scripts/release-evidence.sh](../../scripts/release-evidence.sh): evidence bundle generator for metadata, dependency tree, dependency audit output, SAST output, current-tree secret scan output, hashes, and SBOM generation when available
 - [deny.toml](../../deny.toml): dependency policy banning network, telemetry, reporting, database, and unknown-source dependency classes
 - [.semgrep.yml](../../.semgrep.yml): SAST rules for direct network egress, HTTP client use, local usage databases, removed command surfaces, and workflow exfiltration paths
 - [.github/workflows/ci.yml](../../.github/workflows/ci.yml): CI enforcement for build, tests, dependency policy, SAST, current-tree secret scanning, and enterprise audit
-- [.github/workflows/release.yml](../../.github/workflows/release.yml): release packaging with checksums, SBOM support, cosign signing, and provenance attestation support
+- [.github/workflows/release.yml](../../.github/workflows/release.yml): explicit release packaging gated by the enterprise audit and full test suite, with checksums, SBOM support, cosign signing, and provenance attestation support
+
+Write-capable branch-push CD and `pull_request_target` automation are intentionally absent from the enterprise fork. Releases should be explicit, reviewed, and tied to a recorded commit and evidence package.
 
 ## Verification Status
 

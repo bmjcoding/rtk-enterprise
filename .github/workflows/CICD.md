@@ -1,12 +1,12 @@
 # CI/CD Flows
 
-## PR Quality Gates (ci.yml)
+## PR And Main Quality Gates
 
-Trigger: pull_request to develop or master
+Trigger: pull requests to `main` and pushes to `main`.
 
 ```
                           ┌──────────────────┐
-                          │    PR opened      │
+                          │ PR or main push   │
                           └────────┬─────────┘
                                    │
                           ┌────────▼─────────┐
@@ -23,8 +23,8 @@ Trigger: pull_request to develop or master
            ▼       ▼               ▼              ▼    ▼
      ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌─────────┐ ┌──────────┐
      │ test     │ │ security │ │ semgrep   │ │benchmark│ │enterprise│
-     │ ubuntu   │ │ cargo    │ │ full scan │ │ >=80%   │ │egress    │
-     │ windows  │ │ audit    │ │           │ │ savings │ │audit     │
+     │ ubuntu   │ │ cargo    │ │ full scan │ │ savings │ │egress    │
+     │ windows  │ │ audit    │ │           │ │         │ │audit     │
      │ macos    │ │ deny     │ │           │ │         │ │          │
      └────┬─────┘ └────┬─────┘ └─────┬─────┘ └────┬────┘ └────┬─────┘
           │            │             │             │           │
@@ -32,109 +32,36 @@ Trigger: pull_request to develop or master
                                  │
                       ┌──────────▼─────────┐
                       │  All must pass     │
-                      │  to merge          │
+                      │  to merge/release  │
                       └────────────────────┘
-
-     + DCO check (independent, develop PRs only)
-     + Dependabot (weekly: Cargo deps + GitHub Actions)
 ```
 
-## Merge to develop — pre-release (cd.yml)
+The enterprise audit includes the direct-egress guard self-test. Dependabot and automatic branch-push CD are disabled for regulated source intake.
 
-Trigger: push to develop | workflow_dispatch (not master) | Concurrency: cancel-in-progress
+## Release
+
+Trigger: manual `workflow_dispatch` or explicit `workflow_call`.
 
 ```
      ┌──────────────────┐
-     │ push to develop   │
-     │ OR dispatch       │
+     │ release request   │
      └────────┬─────────┘
               │
      ┌────────▼──────────────────┐
-     │ pre-release                │
-     │ compute next version      │
-     │ from conventional commits │
-     │ tag = v{next}-rc.{run}    │
+     │ enterprise release gate   │
+     │ audit + full test suite   │
      └────────┬──────────────────┘
               │
      ┌────────▼──────────────────┐
-     │ release.yml               │
-     │ prerelease = true         │
-     └────────┬──────────────────┘
-              │
-     ┌────────▼──────────────────┐
-     │ Build                     │
-     │ 5 platforms + DEB + RPM   │
+     │ release.yml build matrix  │
+     │ locked builds only        │
      └────────┬──────────────────┘
               │
      ┌────────▼──────────────────┐
      │ GitHub Release            │
-     │ (pre-release badge)       │
-     │                           │
-     │ external notify: REMOVED  │
-     │ Homebrew: SKIPPED         │
+     │ checksums, SBOM, signing,│
+     │ provenance attestations  │
      └──────────────────────────┘
 ```
 
-## Merge to master — stable release (cd.yml)
-
-Trigger: push to master (only) | Concurrency: never cancelled
-
-```
-     ┌──────────────────┐
-     │ push to master    │
-     └────────┬─────────┘
-              │
-     ┌────────▼──────────────────┐
-     │ release-please            │
-     │ analyze conventional      │
-     │ commits                   │
-     └────────┬──────────────────┘
-              │
-         ┌────┴────────────────┐
-         │                     │
-    no release           release created
-         │                     │
-         ▼                     ▼
-  ┌──────────────┐    ┌───────────────────────┐
-  │ create/update│    │ release.yml            │
-  │ release PR   │    │ prerelease = false     │
-  └──────────────┘    └───────────┬───────────┘
-                                  │
-                     ┌────────────▼────────────┐
-                     │ Build                   │
-                     │ 5 platforms + DEB + RPM  │
-                     └────────────┬────────────┘
-                                  │
-                     ┌────────────▼────────────┐
-                     │ GitHub Release           │
-                     │ (stable, "Latest" badge) │
-                     └──┬─────────┬─────────┘
-                        │         │
-                        ▼         ▼
-                    Homebrew   latest
-                    tap update tag
-```
-
-## Manual release (release.yml)
-
-Trigger: workflow_dispatch
-
-```
-     ┌────────────────────────┐
-     │ workflow_dispatch       │
-     │ inputs: tag, prerelease │
-     └───────────┬────────────┘
-                 │
-     ┌───────────▼────────────┐
-     │ Full build pipeline     │
-     │ 5 platforms + DEB + RPM │
-     └───────────┬────────────┘
-                 │
-          ┌──────┴──────┐
-          │             │
-   prerelease=false  prerelease=true
-          │             │
-          ▼             ▼
-     Homebrew       pre-release
-     latest tag     badge only
-```
+Write-capable automated CD from branch pushes is intentionally disabled for the enterprise fork. Releases should be explicit, reviewed, and tied to an approved commit and evidence package.

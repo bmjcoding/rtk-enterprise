@@ -43,7 +43,7 @@ Use one or more of the following controls:
 - Runtime monitoring for unexpected network or TLS library loads by `rtk`
 - DLP and proxy monitoring for child commands that can move data
 
-RTK Enterprise also includes a source-level build guard in `build.rs`. That guard fails compilation if RTK-owned runtime source adds direct socket, HTTP client, or local database APIs, or if banned network/database crates enter the lockfile. This is a preventative source control, not a replacement for endpoint enforcement.
+RTK Enterprise also includes a source-level build guard in `build.rs`. That guard fails compilation if RTK-owned runtime source adds direct socket, HTTP client, or local database APIs, or if banned network/database crates enter the lockfile. `scripts/verify-egress-guard.sh` proves the guard fails closed by injecting forbidden test cases into a temporary copy. This is preventative source control, not a replacement for endpoint enforcement.
 
 ## Allowed Behavior
 

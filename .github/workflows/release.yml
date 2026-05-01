@@ -23,17 +23,57 @@ on:
         default: false
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  verify:
+    name: Enterprise release gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install audit tools
+        run: |
+          cargo install --locked cargo-audit cargo-deny
+          go install github.com/gitleaks/gitleaks/v8@latest
+          python -m pip install semgrep
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Enterprise audit
+        run: scripts/enterprise-audit.sh
+
+      - name: Full test suite
+        run: cargo test --locked --all
+
   build:
     name: Build ${{ matrix.target }}
+    needs: verify
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +102,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -73,7 +115,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
 
       - name: Install musl tools
         if: matrix.musl
@@ -82,20 +124,20 @@ jobs:
           sudo apt-get install -y musl-tools
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --locked --release --target "${{ matrix.target }}"
 
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
-          tar -czvf ../../../rtk-${{ matrix.target }}.${{ matrix.archive }} rtk
+          cd "target/${{ matrix.target }}/release"
+          tar -czvf "../../../rtk-${{ matrix.target }}.${{ matrix.archive }}" rtk
           cd ../../..
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
-          7z a ../../../rtk-${{ matrix.target }}.${{ matrix.archive }} rtk.exe
+          cd "target/${{ matrix.target }}/release"
+          7z a "../../../rtk-${{ matrix.target }}.${{ matrix.archive }}" rtk.exe
           cd ../../..
 
       - name: Upload artifact
@@ -106,19 +148,24 @@ jobs:
 
   build-deb:
     name: Build DEB package
+    needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-deb
-        run: cargo install cargo-deb
+        run: cargo install --locked cargo-deb
 
       - name: Build DEB
-        run: cargo deb
+        run: cargo deb --locked
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
@@ -128,21 +175,26 @@ jobs:
 
   build-rpm:
     name: Build RPM package
+    needs: verify
     runs-on: ubuntu-latest
     container: fedora:latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install dependencies
         run: |
           dnf install -y rust cargo rpm-build
 
       - name: Install cargo-generate-rpm
-        run: cargo install cargo-generate-rpm
+        run: cargo install --locked cargo-generate-rpm
 
       - name: Build release
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Generate RPM
         run: cargo generate-rpm
@@ -157,16 +209,15 @@ jobs:
     name: Create Release
     needs: [build, build-deb, build-rpm]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          client-id: ${{ secrets.APP_CLIENT_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          permission-contents: write
-
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -180,12 +231,12 @@ jobs:
           if [ -z "$TAG" ]; then
             TAG="${{ github.event.release.tag_name }}"
           fi
-          echo "version=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Flatten artifacts
         run: |
           mkdir -p release
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.deb" -o -name "*.rpm" \) -exec cp {} release/ \;
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.deb" -o -name "*.rpm" \) -exec cp "{}" release/ \;
 
       - name: Create version-agnostic package names
         run: |
@@ -200,7 +251,7 @@ jobs:
       - name: Create checksums
         run: |
           cd release
-          sha256sum * > checksums.txt
+          sha256sum ./* > checksums.txt
 
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@v0
@@ -248,4 +299,3 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           files: release/*
           prerelease: ${{ inputs.prerelease }}
-          token: ${{ steps.app-token.outputs.token }}
