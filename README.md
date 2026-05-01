@@ -7,6 +7,7 @@
 <p align="center">
   <a href="#installation">Install</a> &bull;
   <a href="#enterprise-security-posture">Enterprise Security</a> &bull;
+  <a href="docs/enterprise/README.md">Audit Docs</a> &bull;
   <a href="#commands">Commands</a> &bull;
   <a href="docs/enterprise/ROLL_OUT_SECURITY_REVIEW.md">Rollout Review</a> &bull;
   <a href="SECURITY.md">Security</a>
@@ -122,10 +123,17 @@ rtk --help      # Should show available commands
 This fork is designed to be reviewable by enterprise security teams rather than trusted by assertion. The primary controls are:
 
 - `scripts/enterprise-audit.sh` - local gate for source, dependency, SAST, secret-scan, runtime command-surface, and persistence checks
+- `build.rs` - build-time direct-egress guard that fails compilation if RTK-owned runtime source adds socket/HTTP/database APIs or banned network/database crates
 - `deny.toml` - dependency policy blocking network/client/database/reporting crates and unknown sources
 - `.semgrep.yml` - custom SAST rules for direct network egress, local usage databases, removed commands, and CI/CD exfiltration paths
 - `.github/workflows/ci.yml` - CI enforcement for tests, SCA, dependency policy, SAST, and enterprise audit
 - `.github/workflows/release.yml` - SBOM, checksums, cosign signatures, and GitHub attestations for release assets
+- `docs/enterprise/README.md` - index of public enterprise audit documentation
+- `docs/enterprise/AUDIT_SUMMARY.md` - hardening summary, review scope, added controls, and residual risk
+- `docs/enterprise/NO_TELEMETRY_POSITION.md` - formal boundary for the no data-collection claim
+- `docs/enterprise/VERIFICATION_RUNBOOK.md` - reproducible source, test, build, evidence, and endpoint validation workflow
+- `docs/enterprise/NETWORK_EGRESS_POLICY.md` - recommended deny-by-default RTK process egress policy
+- `docs/enterprise/EVIDENCE_HANDLING.md` - guidance for retaining generated evidence internally without publishing sensitive operational details
 - `docs/enterprise/ROLL_OUT_SECURITY_REVIEW.md` - handoff checklist for independent review and endpoint policy
 
 Fresh-history source intake matters. Do not distribute a clone that includes the original upstream `.git` graph, because historical commits contain code that this fork intentionally removed. Import this sanitized tree into a fresh internal repository or distribute signed release/source archives.

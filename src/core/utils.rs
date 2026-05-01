@@ -262,7 +262,7 @@ pub fn resolve_binary(name: &str) -> Result<PathBuf> {
 /// # Returns
 /// A `Command` configured with the resolved binary path.
 pub fn resolved_command(name: &str) -> Command {
-    match resolve_binary(name) {
+    let mut cmd = match resolve_binary(name) {
         Ok(path) => Command::new(path),
         Err(_e) => {
             // On Windows, resolution failure likely means a .CMD/.BAT wrapper
@@ -283,7 +283,9 @@ pub fn resolved_command(name: &str) -> Command {
             }
             Command::new(name)
         }
-    }
+    };
+    crate::core::enterprise_egress::mark_child_command(&mut cmd);
+    cmd
 }
 
 /// Check if a tool exists on PATH (PATHEXT-aware on Windows).

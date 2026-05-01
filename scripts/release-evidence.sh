@@ -36,7 +36,13 @@ sha256sum \
   scripts/enterprise-audit.sh \
   scripts/release-evidence.sh \
   SECURITY.md \
+  docs/enterprise/AUDIT_SUMMARY.md \
+  docs/enterprise/EVIDENCE_HANDLING.md \
+  docs/enterprise/NETWORK_EGRESS_POLICY.md \
+  docs/enterprise/NO_TELEMETRY_POSITION.md \
+  docs/enterprise/README.md \
   docs/enterprise/ROLL_OUT_SECURITY_REVIEW.md \
+  docs/enterprise/VERIFICATION_RUNBOOK.md \
   > "$OUT/source-control-sha256.txt"
 
 if command -v cargo-audit >/dev/null 2>&1; then

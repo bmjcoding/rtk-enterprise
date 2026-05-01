@@ -2,6 +2,7 @@
 
 pub mod config;
 pub mod constants;
+pub mod enterprise_egress;
 pub mod execution;
 pub mod filter;
 pub mod runner;

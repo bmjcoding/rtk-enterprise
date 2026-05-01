@@ -2,6 +2,15 @@
 
 This document is the handoff package for a regulated enterprise review of the telemetry-free RTK build.
 
+Related audit documents:
+
+- [README.md](README.md) - enterprise audit documentation index
+- [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) - hardening summary, review scope, controls, and residual risk
+- [NO_TELEMETRY_POSITION.md](NO_TELEMETRY_POSITION.md) - formal boundary for the no-telemetry claim
+- [VERIFICATION_RUNBOOK.md](VERIFICATION_RUNBOOK.md) - reproducible reviewer workflow
+- [NETWORK_EGRESS_POLICY.md](NETWORK_EGRESS_POLICY.md) - endpoint egress policy guidance
+- [EVIDENCE_HANDLING.md](EVIDENCE_HANDLING.md) - generated evidence handling guidance
+
 ## Decision Standard
 
 No competent reviewer should approve this as "no risk." The approvable claim is narrower:

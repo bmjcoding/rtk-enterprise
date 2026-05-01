@@ -227,6 +227,8 @@ pub fn run_streaming(
     stdin_mode: StdinMode,
     stdout_mode: FilterMode<'_>,
 ) -> Result<StreamResult> {
+    crate::core::enterprise_egress::mark_child_command(cmd);
+
     if matches!(stdout_mode, FilterMode::Passthrough) {
         match &stdin_mode {
             StdinMode::Inherit => {
@@ -510,6 +512,7 @@ impl CaptureResult {
 }
 
 pub fn exec_capture(cmd: &mut Command) -> Result<CaptureResult> {
+    crate::core::enterprise_egress::mark_child_command(cmd);
     cmd.stdin(Stdio::null());
     let output = cmd.output().context("Failed to execute command")?;
     Ok(CaptureResult {

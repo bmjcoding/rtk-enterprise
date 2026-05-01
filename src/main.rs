@@ -1221,6 +1221,8 @@ fn run_cli() -> Result<i32> {
         }
     };
 
+    core::enterprise_egress::enforce_startup_policy()?;
+
     // Warn if installed hook is outdated/missing (1/day, non-blocking).
     hooks::hook_check::maybe_warn();
 
@@ -1936,7 +1938,9 @@ fn run_cli() -> Result<i32> {
                 use std::process::Command as ProcCommand;
                 let shell = if cfg!(windows) { "cmd" } else { "sh" };
                 let flag = if cfg!(windows) { "/C" } else { "-c" };
-                let status = ProcCommand::new(shell)
+                let mut cmd = ProcCommand::new(shell);
+                core::enterprise_egress::mark_child_command(&mut cmd);
+                let status = cmd
                     .arg(flag)
                     .arg(&raw)
                     .status()
